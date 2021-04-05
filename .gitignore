@@ -133,3 +133,6 @@ dmypy.json
 *.zip
 *.rar
 
+# Mac
+.DS_Store
+
