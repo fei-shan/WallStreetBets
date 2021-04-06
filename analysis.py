@@ -17,7 +17,7 @@ import argparse
 
 
 # Local
-from Dataset import WsbData
+from dataset import WsbData
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -37,8 +37,7 @@ def main():
 	sentiment_scores=[]
 
 	for doc in docs:
-		vs = sentiment_analyser.polarity_scores(doc)
-		
+		vs = sentiment_analyser.polarity_scores(doc)['compound']
 		sentiment_scores.append(vs)
 
 	if verbose:

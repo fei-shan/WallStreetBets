@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import yfinance as yf
 
 from nltk.corpus import stopwords
 
@@ -19,11 +20,16 @@ import functools
 def strip_short2(s):
 	return strip_short(s, 2)
 
+from words import CustomWords
+custom = CustomWords()
+
+STOCKS = custom.get_stock_symbols()
+
 # Filter
 # strip_short2 = functools.partial(strip_short, 2)
 CUSTOM_FILTERS = [lambda x: x.lower(), strip_tags, strip_punctuation, strip_multiple_whitespaces, 
 	strip_numeric, remove_stopwords, 
-	# strip_short, 
+	# strip_short,
 	stem_text]
 
 # Remove more stopwords
@@ -35,7 +41,10 @@ STOP_WORDS.extend(['from', 'subject', 're', 'edu', 'use', 'would', 'say', 'could
 
 
 def custome_preprocessing(docs):
-	docs = [[word for word in preprocess_string(doc, CUSTOM_FILTERS) if word not in STOP_WORDS] for doc in docs]
+	# docs = [[word for word in preprocess_string(doc, CUSTOM_FILTERS) if word not in STOP_WORDS] for doc in docs]
+	
+	# Preserve stock symbols
+	docs = [[word for word in preprocess_string(doc, CUSTOM_FILTERS) if (word in STOCKS) or (word not in STOP_WORDS)] for doc in docs]
 	return docs
 
 class WsbData:
