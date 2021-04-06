@@ -22,8 +22,10 @@ def strip_short2(s):
 
 from words import CustomWords
 custom = CustomWords()
-
 STOCKS = custom.get_stock_symbols()
+
+START_TIME = '2020-10-01'
+END_TIME = '2021-04-01'
 
 # Filter
 # strip_short2 = functools.partial(strip_short, 2)
@@ -51,7 +53,9 @@ class WsbData:
 	def __init__(self):
 		self.data_path = "reddit_wsb.csv"
 		self.df = pd.read_csv(self.data_path, index_col=['timestamp'])
+		self.df.index = pd.to_datetime(self.df.index)
 		self.df = self.df.sort_values(by=['timestamp'])
+		self.df = self.df[pd.Timestamp(START_TIME):pd.Timestamp(END_TIME)]
 
 	def get_df(self, verbose=False):
 		if verbose:
@@ -79,9 +83,25 @@ class WsbData:
 		return docs_tokenized
 
 class StockData():
-	def __init__(self):
-		self.df = None
+	def __init__(self, stocks=['GME'], start=START_TIME, end=END_TIME):
+		# Default check closing price of Gamestop
+		tickers = '^GSPC' #'^SPX'
+		for s in stocks:
+			tickers = tickers + ' ' + s
+		self.df = yf.download(tickers, start=start, end=end)['Adj Close']
+
+	def get_df(self):
+		return self.df
+
+# def scrap():
+# 	stock = Stock()
+
+
 
 if __name__ == '__main__':
 	wsb = WsbData()
 	print(wsb.get_df())
+	stock = StockData()
+	print(stock.get_df())
+
+
