@@ -6,11 +6,11 @@ stock prices can be downloaded with yfinance Python library
 
 ## Files:
 
-* dataset.py
+* **dataset.py**
 For loading wsb posts and stock data
 
-* words.py
+* **words.py**
 Define custom stop words and stock symbols
 
-* analysis.py
+* **analysis.py**
 Run data analysis
