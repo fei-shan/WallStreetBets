@@ -132,6 +132,7 @@ dmypy.json
 *.csv
 *.zip
 *.rar
+*.png
 
 # Mac
 .DS_Store

@@ -9,6 +9,8 @@ from gensim.parsing.preprocessing import strip_tags, strip_punctuation, strip_mu
 from gensim.parsing.preprocessing import preprocess_string, preprocess_documents
 from gensim.utils import simple_preprocess
 
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
 import os
 import re
 import string
@@ -82,13 +84,22 @@ class WsbData:
 			print(docs_tokenized[0])
 		return docs_tokenized
 
+
 class StockData():
-	def __init__(self, stocks=['GME'], start=START_TIME, end=END_TIME):
+	def __init__(self, stocks=['GME'], start=START_TIME, end=END_TIME, filldates=True):
 		# Default check closing price of Gamestop
 		tickers = '^GSPC' #'^SPX'
 		for s in stocks:
 			tickers = tickers + ' ' + s
 		self.df = yf.download(tickers, start=start, end=end)['Adj Close']
+		self.df = self.df.round(2)
+
+		# Fill no-trading dates, forward and backward fill
+		if filldates:
+			idx = pd.date_range(START_TIME, END_TIME)
+			self.df = self.df.reindex(idx)
+			self.df.ffill(axis=0, inplace=True)
+			self.df.bfill(axis=0, inplace=True)
 
 	def get_df(self):
 		return self.df
