@@ -1,7 +1,8 @@
 # WallStreetBets
 
 Datasets available [here](https://www.kaggle.com/gpreda/reddit-wallstreetsbets-posts).
-stock prices can be downloaded with yfinance Python library
+
+Stock prices can be downloaded with yfinance Python library
 
 
 ## Files:
