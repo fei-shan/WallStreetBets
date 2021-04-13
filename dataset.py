@@ -26,7 +26,8 @@ from words import CustomWords
 custom = CustomWords()
 STOCKS = custom.get_stock_symbols()
 
-START_TIME = '2020-10-01'
+# START_TIME = '2020-10-01'
+START_TIME = '2021-01-28'
 END_TIME = '2021-04-01'
 
 # Filter
