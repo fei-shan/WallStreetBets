@@ -43,9 +43,9 @@ def compare_sentiment_return(doc_df, stock_df, symbols=['GME']):
 	print(result)
 
 	# Plot
-	ax = result.plot(kind='line', title='Daily Average Sentiment vs. Stock price')
+	ax = result.plot(kind='line', title='Average Sentiment vs. Daily Return')
 	fig = ax.get_figure()
-	fig.savefig("daily_avg_sentiment_vs_price")
+	fig.savefig("avg_sentiment_vs_daily_return")
 
 
 def main():
