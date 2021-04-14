@@ -8,8 +8,23 @@ class CustomWords:
 		self.stock_symbols = [line.strip() for line in file]
 		file.close()
 
+		self.more_stopwords = ["&#x200b"]
+
+		# Positive sentiment in trading
+		self.long = ["long", "buy", "moon"]
+		self.short = ["short", "sell"]
+
 	def get_git_stopwords(self):
 		return self.git_stopwords
 
 	def get_stock_symbols(self):
 		return self.stock_symbols
+
+	def get_more_stopwords(self):
+		return self.more_stopwords
+
+	def get_long_words(self):
+		return self.long
+
+	def get_short_words(self):
+		return self.short

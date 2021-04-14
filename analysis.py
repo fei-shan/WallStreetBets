@@ -13,6 +13,8 @@ from gensim.utils import simple_preprocess
 
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+
 import spacy as sp
 # !python3 -m spacy download en  # run in terminal once
 import nltk
@@ -27,15 +29,27 @@ import argparse
 from dataset import WsbData, StockData
 
 SYMBOLS = ['GME']
+CUSTOM = CustomWords()
+
+def generate_wordcloud(doc_df):
+	text = ' '.join(doc for doc in doc_df['Doc'])
+	stopwords = set(CUSTOM.get_git_stopwords())
+	stopwords = stopwords.union(set(CUSTOM.get_more_stopwords()))
+	wordcloud = WordCloud(stopwords=stopwords, background_color="white").generate(text)
+
+	plt.figure(figsize=[19.2, 10.8])
+	plt.imshow(wordcloud, interpolation='bilinear')
+	plt.axis("off")
+	plt.savefig("wordcloud")
 
 def compare_sentiment_return(doc_df, stock_df, symbols=['GME']):
 	# Daily return of a stock
 	daily_rets = (stock_df / stock_df.shift()) - 1
 	daily_rets = daily_rets[:-1].fillna(0.)
-	print(daily_rets)
 
 	# Check if the stock symbol exist in the doc
-	valid_docs = doc_df.loc[doc_df['Doc'].str.contains('|'.join(symbols))]
+	valid_docs = doc_df.loc[doc_df['Doc'].str.contains('|'.join(symbols), case=False)]
+	print(valid_docs)
 	# Get average sentiment
 	daily_avg_scores = valid_docs['Sentiment'].groupby(pd.Grouper(freq='D')).mean()
 
@@ -91,6 +105,7 @@ def main():
 
 	# Analysis
 	compare_sentiment_return(doc_df, stock_df, SYMBOLS)
+	generate_wordcloud(doc_df)
 
 	if plot:
 		# TODO: plot
