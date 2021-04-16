@@ -31,6 +31,22 @@ from dataset import WsbData, StockData
 SYMBOLS = ['GME']
 CUSTOM = CustomWords()
 
+def time_lagged_corr(s1, s2, max_lag=None):
+	if not max_lag:
+		max_lag = s2.size-1
+
+	opt_corr = float('-inf')
+	opt_lag = 0
+
+	# Shift s2
+	for lag in range(-max_lag, max_lag+1):
+		corr = s1.corr(s2.shift(lag))
+		if corr > opt_corr:
+			opt_corr = corr
+			opt_lag = lag
+
+	return opt_corr, opt_lag 
+
 def generate_wordcloud(doc_df):
 	text = ' '.join(doc for doc in doc_df['Doc'])
 	stopwords = set(CUSTOM.get_git_stopwords())
@@ -48,18 +64,29 @@ def compare_sentiment_return(doc_df, stock_df, symbols=['GME']):
 	daily_rets = daily_rets[:-1].fillna(0.)
 
 	# Check if the stock symbol exist in the doc
-	valid_docs = doc_df.loc[doc_df['Doc'].str.contains('|'.join(symbols), case=False)]
-	print(valid_docs)
-	# Get average sentiment
-	daily_avg_scores = valid_docs['Sentiment'].groupby(pd.Grouper(freq='D')).mean()
+	# valid_docs = doc_df.loc[doc_df['Doc'].str.contains('|'.join(symbols), case=False)]
+	
+	# For each symbol
+	for s in symbols:
+		# Check if the stock symbol exist in the doc
+		valid_docs = doc_df.loc[doc_df['Doc'].str.contains(s, case=False)]
+		
+		# Get average sentiment
+		daily_avg_scores = valid_docs['Sentiment'].groupby(pd.Grouper(freq='D')).mean()
 
-	result = pd.concat([daily_rets, daily_avg_scores], axis=1)
-	print(result)
+		result = pd.concat([daily_rets[[s]], daily_avg_scores], axis=1)
+		print(result)
 
-	# Plot
-	ax = result.plot(kind='line', title='Average Sentiment vs. Daily Return')
-	fig = ax.get_figure()
-	fig.savefig("avg_sentiment_vs_daily_return")
+		corr = daily_rets[s].corr(daily_avg_scores)
+		print("Pearson correlation of {} and sentiment is {}".format(s, corr))
+
+		opt_corr, opt_lag = time_lagged_corr(daily_rets[s], daily_avg_scores, 28)
+		print("Optimum time lagged Pearson correlation of {} and sentiment is {} with lag {}".format(s, opt_corr, opt_lag))
+
+		# Plot
+		ax = result.plot(kind='line', title='Average Sentiment vs. Daily Return')
+		fig = ax.get_figure()
+		fig.savefig("avg_sentiment_vs_daily_return_{}".format(s))
 
 
 def main():
