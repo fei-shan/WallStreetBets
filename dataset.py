@@ -34,7 +34,7 @@ END_TIME = '2021-03-31'
 
 # Alternative 
 # DATA_PATH = "r_wallstreetbets_posts.csv"
-# START_TIME = '2020-12-15'
+# START_TIME = '2020-12-01'
 # END_TIME = '2021-02-15'
 
 # Filter

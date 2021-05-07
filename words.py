@@ -36,7 +36,7 @@ class CustomWords:
 						 "puts": "unpleasant",
 						 "tank": "doom",
 						 "bear": "poor",
-						 "yolo": "freedom",
+						 # "yolo": "freedom",
 						 "dd": "reassurance",
 						 "stonks": "promote",
 						 "autist": "optimist",

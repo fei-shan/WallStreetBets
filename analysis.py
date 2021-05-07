@@ -27,8 +27,8 @@ import argparse
 from dataset import WsbData, StockData
 
 SYMBOLS = {'GME': 'Gamestop'
-		   # , 'AMC': 'AMC'
-		   # , 'NOK': 'Nokia'
+		   , 'AMC': 'AMC'
+		   , 'NOK': 'Nokia'
 		  }
 CUSTOM = CustomWords()
 
@@ -36,9 +36,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", help="verbose")
 # parser.add_argument("-p", "--plot", dest="plot", action="store_true", help="plot")
 parser.add_argument("-t", "--title-only", dest="title", action="store_true", help="only check post title")
-parser.set_defaults(verbose=False, plot=False, jargons=False)
+parser.add_argument("-m", "--mentioned-only", dest="mentioned", action="store_true", help="only check post that mentions the stock")
+parser.add_argument("-g", "--gme-only", dest="gme", action="store_true", help="only check GME")
+parser.set_defaults(verbose=False, title=False, mentioned=False, gme=False)
 args = parser.parse_args()
 
+if args.gme:
+	SYMBOLS = {'GME': 'Gamestop'}
 
 def time_lagged_corr(s1, s2, lag_range=None):
 	if not lag_range:
@@ -74,10 +78,14 @@ def generate_wordcloud(doc_df):
 
 def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	# Combine symbols
-	# Check if the stock symbol exist in the doc
+
+	valid_docs = doc_df
 	valid_symbols = [s + '|' + symbols[s] for s in symbols.keys()]
-	valid_docs = doc_df.loc[doc_df['Doc'].str.contains('|'.join(valid_symbols), case=False)] # combine stocks
-	# valid_docs = doc_df
+	if args.mentioned:
+		# Check if the stock symbol exist in the doc
+		valid_docs = doc_df.loc[doc_df['Doc'].str.contains('|'.join(valid_symbols), case=False)] # combine stocks
+	
+
 	
 	# Get average sentiment
 	avg_daily_scores = valid_docs.groupby(pd.Grouper(freq='D')).mean()
@@ -111,7 +119,7 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	corr = avg_stock_df['Stock Price'].corr(avg_daily_scores['Market Sentiment'])
 	print("Pearson correlation of price and sentiment is {} with market sentiment".format(corr))
 
-	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_stock_df['Stock Price'], avg_daily_scores['Market Sentiment'], 7)
+	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_stock_df['Stock Price'], avg_daily_scores['Market Sentiment'], 10)
 	print("Maximum time lagged correlation of price and sentiment is {} with lag {} with market sentiment".format(max_corr, max_lag))
 	print("Minimum time lagged correlation of price and sentiment is {} with lag {} with market sentiment".format(min_corr, min_lag))
 
@@ -119,7 +127,7 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	corr = avg_daily_rets['Daily Return'].corr(avg_daily_scores['Market Sentiment'])
 	print("Pearson correlation of return and sentiment is {} with market sentiment".format(corr))
 
-	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_daily_rets['Daily Return'], avg_daily_scores['Market Sentiment'], 7)
+	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_daily_rets['Daily Return'], avg_daily_scores['Market Sentiment'], 10)
 	print("Maximum time lagged correlation of return and sentiment is {} with lag {} with market sentiment".format(max_corr, max_lag))
 	print("Minimum time lagged correlation of return and sentiment is {} with lag {} with market sentiment".format(min_corr, min_lag))
 
@@ -127,7 +135,7 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	corr = avg_stock_df['Stock Price'].corr(avg_daily_scores['Sentiment'])
 	print("Pearson correlation of price and sentiment is {} without market sentiment".format(corr))
 
-	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_stock_df['Stock Price'], avg_daily_scores['Sentiment'], 7)
+	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_stock_df['Stock Price'], avg_daily_scores['Sentiment'], 10)
 	print("Maximum time lagged correlation of price and sentiment is {} with lag {} without market sentiment".format(max_corr, max_lag))
 	print("Minimum time lagged correlation of price and sentiment is {} with lag {} without market sentiment".format(min_corr, min_lag))
 
@@ -135,7 +143,7 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	corr = avg_daily_rets['Daily Return'].corr(avg_daily_scores['Sentiment'])
 	print("Pearson correlation of return and sentiment is {} without market sentiment".format(corr))
 
-	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_daily_rets['Daily Return'], avg_daily_scores['Sentiment'], 7)
+	max_corr, max_lag, min_corr, min_lag = time_lagged_corr(avg_daily_rets['Daily Return'], avg_daily_scores['Sentiment'], 10)
 	print("Maximum time lagged correlation of return and sentiment is {} with lag {} without market sentiment".format(max_corr, max_lag))
 	print("Minimum time lagged correlation of return and sentiment is {} with lag {} without market sentiment".format(min_corr, min_lag))
 
@@ -157,8 +165,8 @@ def main():
 	
 	# Title only with alternative dataset and time
 	if args.title:
-		wsb_data = WsbData(start='2020-12-15', end='2021-02-15', data_path="r_wallstreetbets_posts.csv")
-		stock_data = StockData(start='2020-12-15', end='2021-02-15', stocks=SYMBOLS)
+		wsb_data = WsbData(start='2020-12-01', end='2021-02-15', data_path="r_wallstreetbets_posts.csv")
+		stock_data = StockData(start='2020-12-01', end='2021-02-15', stocks=SYMBOLS)
 		doc_df = wsb_data.get_titles()
 
 	doc_df['Doc'] = doc_df['Doc'].str.lower()
