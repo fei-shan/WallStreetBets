@@ -29,6 +29,11 @@ from dataset import WsbData, StockData
 SYMBOLS = {'GME': 'Gamestop'
 		   , 'AMC': 'AMC'
 		   , 'NOK': 'Nokia'
+		   , 'BB': 'Blackberry'
+		   , 'BBBY': 'Bed\bBath'
+		   , 'EXPR': 'Express'
+		   , 'KOSS': 'Koss'
+		   , 'NAKD': 'Naked\bBrand'
 		  }
 CUSTOM = CustomWords()
 
@@ -38,6 +43,7 @@ parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", help
 parser.add_argument("-t", "--title-only", dest="title", action="store_true", help="only check post title")
 parser.add_argument("-m", "--mentioned-only", dest="mentioned", action="store_true", help="only check post that mentions the stock")
 parser.add_argument("-g", "--gme-only", dest="gme", action="store_true", help="only check GME")
+parser.add_argument("-w", "--weighted-sentiment", dest="weighted", action="store_true", help="Weight sentiment by post score")
 parser.set_defaults(verbose=False, title=False, mentioned=False, gme=False)
 args = parser.parse_args()
 
@@ -78,18 +84,25 @@ def generate_wordcloud(doc_df):
 
 def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	# Combine symbols
-
-	valid_docs = doc_df
 	valid_symbols = [s + '|' + symbols[s] for s in symbols.keys()]
+	valid_docs = doc_df
 	if args.mentioned:
 		# Check if the stock symbol exist in the doc
-		valid_docs = doc_df.loc[doc_df['Doc'].str.contains('|'.join(valid_symbols), case=False)] # combine stocks
-	
-
+		valid_docs = valid_docs.loc[doc_df['Doc'].str.contains('|'.join(valid_symbols), case=False)] # combine stocks
 	
 	# Get average sentiment
-	avg_daily_scores = valid_docs.groupby(pd.Grouper(freq='D')).mean()
+	avg_daily_scores = valid_docs[['Sentiment', 'Market Sentiment', 'Score']]
+	if args.weighted:
+		weights = avg_daily_scores['Score']/avg_daily_scores['Score'].sum(axis=0) # Weighted by post score
+		print(weights)
+		avg_daily_scores['Sentiment'] = avg_daily_scores['Sentiment'].multiply(weights)
+		avg_daily_scores['Market Sentiment'] = avg_daily_scores['Market Sentiment'].multiply(weights)
+		avg_daily_scores = avg_daily_scores.groupby(pd.Grouper(freq='D')).mean()[['Sentiment', 'Market Sentiment']]
+	else:
+		avg_daily_scores = avg_daily_scores[['Sentiment', 'Market Sentiment']].groupby(pd.Grouper(freq='D')).mean()
 	avg_daily_scores = avg_daily_scores.fillna(0.)
+
+	print(avg_daily_scores)
 
 	# Get average stock price and return
 	avg_stock_df = stock_df[[s for s in symbols.keys()]]
@@ -150,11 +163,11 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	# Plot
 	ax = result[['Sentiment', 'Stock Price', 'Daily Return', 'Market Sentiment']].plot(kind='line', title='Average Sentiment vs. Daily Return')
 	fig = ax.get_figure()
-	fig.savefig("avg_sentiment_vs_daily_return_{}_{}_jargons".format(valid_symbols, "with"))
+	fig.savefig("{}avg_sentiment_vs_daily_return_{}_{}_jargons".format("weighted_" if args.weighted else "", valid_symbols, "with"))
 
 	ax = result[['Sentiment', 'Stock Price', 'Daily Return']].plot(kind='line', title='Average Sentiment vs. Daily Return')
 	fig = ax.get_figure()
-	fig.savefig("avg_sentiment_vs_daily_return_{}_{}_jargons".format(valid_symbols, "without"))
+	fig.savefig("{}avg_sentiment_vs_daily_return_{}_{}_jargons".format("weighted_" if args.weighted else "", valid_symbols, "without"))
 
 def main():
 	# Default
@@ -201,7 +214,7 @@ def main():
 
 	# Analysis
 	compare_sentiment_return(doc_df, normed_df, daily_rets, symbols=SYMBOLS)
-	# generate_wordcloud(doc_df)
+	# generate_wordcloud(doc_df[['Doc']])
 
 	return
 

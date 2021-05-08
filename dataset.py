@@ -83,15 +83,16 @@ class WsbData:
 	def get_documents(self, verbose=False):
 		# Join text
 		doc_df = (self.df['title'].fillna('') + " " + self.df['body'].fillna('')).to_frame()
-		doc_df.columns = ['Doc']
+		doc_df = pd.concat([doc_df, self.df['score']], axis=1)
+		doc_df.columns = ['Doc', 'Score']
 		if verbose:
 			print(doc_df)
 		# Title and content
 		return doc_df
 
-	def get_titles(self, verbose=True):
-		title_df = self.df['title'].fillna('').to_frame()
-		title_df.columns = ['Doc']
+	def get_titles(self, verbose=False):
+		title_df = self.df[['title', 'score']].fillna('')
+		title_df.columns = ['Doc', 'Score']
 		if verbose:
 			print(title_df)
 		# Title
@@ -114,10 +115,10 @@ class WsbData:
 class StockData():
 	def __init__(self, stocks=['GME'], start=START_TIME, end=END_TIME, filldates=True):
 		# Default check closing price of Gamestop
-		tickers = '^GSPC' #'^SPX'
+		self.tickers = '^GSPC' #'^SPX'
 		for s in stocks:
-			tickers = tickers + ' ' + s
-		self.df = yf.download(tickers, start=pd.Timestamp(start)-pd.Timedelta(days=7), end=pd.Timestamp(end)+pd.Timedelta(days=7))['Adj Close']
+			self.tickers = self.tickers + ' ' + s
+		self.df = yf.download(self.tickers, start=pd.Timestamp(start)-pd.Timedelta(days=7), end=pd.Timestamp(end)+pd.Timedelta(days=7))['Adj Close']
 		self.df = self.df.round(2)
 		self.start = start
 		self.end = end
@@ -140,17 +141,17 @@ class StockData():
 		return daily_rets
 
 	def get_three_day_returns(self):
-		three_day_rets = (self.df / self.df.shift(5)) - 1
+		three_day_rets = (self.df / self.df.shift(3)) - 1
 		three_day_rets = three_day_rets[pd.Timestamp(self.start):pd.Timestamp(self.end)].fillna(0.)
 		# Three day return
 		return three_day_rets
 
 	def get_normalized(self):
-		# normed_df = self.df/self.df.iloc[0]
-		# normed_df = normed_df[pd.Timestamp(self.start):pd.Timestamp(self.end)]
+		normed_df = self.df/yf.download(self.tickers, start=pd.Timestamp('2020-12-01'), end=pd.Timestamp('2020-12-02'))['Adj Close'].iloc[0] # Use 2020-12-01 price as base
+		normed_df = normed_df[pd.Timestamp(self.start):pd.Timestamp(self.end)]
 
-		normed_df = self.df[pd.Timestamp(self.start):pd.Timestamp(self.end)]
-		normed_df = normed_df/normed_df.iloc[0]
+		# normed_df = self.df[pd.Timestamp(self.start):pd.Timestamp(self.end)]
+		# normed_df = normed_df/normed_df.iloc[0]
 
 		# Log10
 		normed_df = np.log10(normed_df)

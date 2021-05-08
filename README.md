@@ -1,7 +1,7 @@
 # WallStreetBets
 
 Datasets available [here](https://www.kaggle.com/gpreda/reddit-wallstreetsbets-posts).
-Alternative dataset under testing [here](https://www.kaggle.com/unanimad/reddit-rwallstreetbets).
+Alternative dataset [here](https://www.kaggle.com/unanimad/reddit-rwallstreetbets), which have data before Jan 28 2021, but does not have post content.
 
 Stock prices can be downloaded with yfinance Python library
 
