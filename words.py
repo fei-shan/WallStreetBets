@@ -42,7 +42,7 @@ class CustomWords:
 						 "autist": "optimist",
 						 "hold": "profit",
 						 "hodl": "profit",
-						 "diamond": "wealth",
+						 # "diamond hands": "wealth",
 						 # "Hold the line": "confident",
 						 "paper": "fearful"}
 

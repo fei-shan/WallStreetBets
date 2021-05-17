@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
+from fastdtw import fastdtw
+from scipy.spatial.distance import euclidean
 
 import gensim
 from gensim.corpora import Dictionary
@@ -30,10 +32,10 @@ SYMBOLS = {'GME': 'Gamestop'
 		   , 'AMC': 'AMC'
 		   , 'NOK': 'Nokia'
 		   , 'BB': 'Blackberry'
-		   , 'BBBY': 'Bed\bBath'
-		   , 'EXPR': 'Express'
-		   , 'KOSS': 'Koss'
-		   , 'NAKD': 'Naked\bBrand'
+		   # , 'BBBY': 'Bed\sBath'
+		   # , 'EXPR': 'Express'
+		   # , 'KOSS': 'Koss'
+		   # , 'NAKD': 'Naked\sBrand'
 		  }
 CUSTOM = CustomWords()
 
@@ -84,11 +86,14 @@ def generate_wordcloud(doc_df):
 
 def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	# Combine symbols
-	valid_symbols = [s + '|' + symbols[s] for s in symbols.keys()]
+	valid_symbols = [s + '(?:\s|$)' + '|' + symbols[s] + '(?:\s|$)' for s in symbols.keys()] # make sure the word end with space
 	valid_docs = doc_df
 	if args.mentioned:
 		# Check if the stock symbol exist in the doc
 		valid_docs = valid_docs.loc[doc_df['Doc'].str.contains('|'.join(valid_symbols), case=False)] # combine stocks
+		valid_docs = valid_docs.loc[~valid_docs['Doc'].str.contains('megathread', case=False)]
+
+	print(valid_docs)
 	
 	# Get average sentiment
 	avg_daily_scores = valid_docs[['Sentiment', 'Market Sentiment', 'Score']]
@@ -102,7 +107,7 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 		avg_daily_scores = avg_daily_scores[['Sentiment', 'Market Sentiment']].groupby(pd.Grouper(freq='D')).mean()
 	avg_daily_scores = avg_daily_scores.fillna(0.)
 
-	print(avg_daily_scores)
+	# print(avg_daily_scores)
 
 	# Get average stock price and return
 	avg_stock_df = stock_df[[s for s in symbols.keys()]]
@@ -118,11 +123,20 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	result = pd.concat([avg_daily_scores,
 						avg_stock_df[['Stock Price']], 
 						avg_daily_rets[['Daily Return']]], axis=1)
-	print(result)
+	# print(result)
 
+	# Store data
+	result.to_csv("{}result_{}.csv".format("weighted_" if args.weighted else "", [s for s in symbols.keys()]))
 
 	# Stocks
 	print("Stocks selected: {}".format([s for s in symbols.keys()]))
+	print("Mean: {} => {}".format(result['Sentiment'].mean(), result['Market Sentiment'].mean()))
+	print("Variance: {} => {}".format(result['Sentiment'].var(), result['Market Sentiment'].var()))
+	print("Standard deviation: {} => {}".format(result["Sentiment"].std(), result['Market Sentiment'].std()))
+
+	# Check counts
+	for s in symbols.keys():
+		print("Stock mentioned count: {} => {}".format(s, doc_df[doc_df['Doc'].str.contains('|'.join([s + '(?:\s|$)', symbols[s] + '(?:\s|$)']), case=False)].size))
 
 	# Jargons
 	corr = avg_daily_scores['Sentiment'].corr(avg_daily_scores['Market Sentiment'])
@@ -161,13 +175,21 @@ def compare_sentiment_return(doc_df, stock_df, daily_rets, symbols=SYMBOLS):
 	print("Minimum time lagged correlation of return and sentiment is {} with lag {} without market sentiment".format(min_corr, min_lag))
 
 	# Plot
-	ax = result[['Sentiment', 'Stock Price', 'Daily Return', 'Market Sentiment']].plot(kind='line', title='Average Sentiment vs. Daily Return')
+	ax = result[['Sentiment', 'Stock Price', 'Daily Return', 'Market Sentiment']].plot(kind='line', title='Average Sentiment vs. Stock Price/Daily Return').legend(loc='upper left')
 	fig = ax.get_figure()
-	fig.savefig("{}avg_sentiment_vs_daily_return_{}_{}_jargons".format("weighted_" if args.weighted else "", valid_symbols, "with"))
+	fig.savefig("{}avg_sentiment_vs_stock_{}".format("weighted_" if args.weighted else "", valid_symbols), bbox_inches='tight')
 
-	ax = result[['Sentiment', 'Stock Price', 'Daily Return']].plot(kind='line', title='Average Sentiment vs. Daily Return')
+	ax = result[['Stock Price', 'Market Sentiment']].plot(kind='line', title='Average Sentiment vs. Stock Price/Daily Return', color=['orange', 'red']).legend(loc='upper left')
 	fig = ax.get_figure()
-	fig.savefig("{}avg_sentiment_vs_daily_return_{}_{}_jargons".format("weighted_" if args.weighted else "", valid_symbols, "without"))
+	fig.savefig("{}avg_sentiment_vs_stock_partial_{}".format("weighted_" if args.weighted else "", valid_symbols), bbox_inches='tight')
+
+	dtw_distance_market, dtw_path_dtw = fastdtw(result['Stock Price'], result['Market Sentiment'], dist=euclidean)
+	dtw_distance, dtw_path = fastdtw(result['Stock Price'], result['Sentiment'], dist=euclidean)
+	print("Dynamic time warping price: {} => {}".format(dtw_distance, dtw_distance_market))
+	dtw_distance_market, dtw_path_dtw = fastdtw(result['Daily Return'], result['Market Sentiment'], dist=euclidean)
+	dtw_distance, dtw_path = fastdtw(result['Daily Return'], result['Sentiment'], dist=euclidean)
+	print("Dynamic time warping daily return: {} => {}".format(dtw_distance, dtw_distance_market))
+
 
 def main():
 	# Default
@@ -210,7 +232,6 @@ def main():
 		print(doc_df)
 		print(stock_df)
 		print(daily_rets)
-		print(three_day_rets)
 
 	# Analysis
 	compare_sentiment_return(doc_df, normed_df, daily_rets, symbols=SYMBOLS)
